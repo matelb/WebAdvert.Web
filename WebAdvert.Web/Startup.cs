@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WebAdvert.Web.Services.FileUploader;
+using WebAdvert.Web.Services.FileUploader.Interface;
 
 namespace WebAdvert.Web
 {
@@ -43,11 +45,27 @@ namespace WebAdvert.Web
                 };
             });
 
+           
+
             services.ConfigureApplicationCookie(option =>
             {
                 option.LoginPath = "/Accounts/Login";
             });
+
+
+            services.AddTransient<IFileUploader, FileUploader>();
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            //adri
+            //services.Configure<IISServerOptions>(options =>
+            //{
+            //    options.AutomaticAuthentication = false;
+            //});
+            //services.Configure<IISOptions>(options =>
+            //{
+            //    options.ForwardClientCertificate = false;
+            //});
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
