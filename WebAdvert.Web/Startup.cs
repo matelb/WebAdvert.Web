@@ -10,6 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WebAdvert.Web.Services.FileUploader;
 using WebAdvert.Web.Services.FileUploader.Interface;
+using AutoMapper;
+using WebAdvert.Web.ServiceClients;
+using Polly;
+using System.Net.Http;
+using Polly.Extensions.Http;
 
 namespace WebAdvert.Web
 {
@@ -25,6 +30,7 @@ namespace WebAdvert.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -46,26 +52,38 @@ namespace WebAdvert.Web
             });
 
            
-
             services.ConfigureApplicationCookie(option =>
             {
                 option.LoginPath = "/Accounts/Login";
             });
 
-
+            services.AddAutoMapper();
             services.AddTransient<IFileUploader, FileUploader>();
+            services.AddHttpClient<IAdvertApiClient, AdvertApiClient>().AddPolicyHandler(GetRetryPolicy())
+                                                                        .AddPolicyHandler(GetCircuitBreakerPatternPolicy());
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             //adri
-            //services.Configure<IISServerOptions>(options =>
-            //{
-            //    options.AutomaticAuthentication = false;
-            //});
-            //services.Configure<IISOptions>(options =>
-            //{
-            //    options.ForwardClientCertificate = false;
-            //});
+            services.Configure<IISServerOptions>(options =>
+            {
+                options.AutomaticAuthentication = false;
+            });
+            services.Configure<IISOptions>(options =>
+            {
+                options.ForwardClientCertificate = false;
+            });
+        }
+
+        private IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPatternPolicy()
+        {
+            return HttpPolicyExtensions.HandleTransientHttpError().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+        }
+
+        private IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+        {
+            return HttpPolicyExtensions.HandleTransientHttpError().OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                            .WaitAndRetryAsync(retryCount: 5, sleepDurationProvider: retryAttemp => TimeSpan.FromSeconds(Math.Pow(2, retryAttemp)));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 using WebAdvert.Web.Models.AdvertManagement;
+using WebAdvert.Web.ServiceClients;
 using WebAdvert.Web.Services.FileUploader.Interface;
 
 namespace WebAdvert.Web.Controllers
@@ -13,9 +15,17 @@ namespace WebAdvert.Web.Controllers
 
         private readonly IFileUploader fileUploader;
 
-        public AdvertManagementController(IFileUploader fileUploader)
+        private readonly IAdvertApiClient advertApiClient;
+
+        private readonly IMapper mapper;
+
+        public AdvertManagementController(  IFileUploader fileUploader, 
+                                            IAdvertApiClient advertApiClient,
+                                            IMapper mapper)
         {
             this.fileUploader = fileUploader;
+            this.advertApiClient = advertApiClient;
+            this.mapper = mapper;
         }
 
 
@@ -30,8 +40,14 @@ namespace WebAdvert.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                var id = "1111";
+                
                 //we must call to AdvertApi,create advertement in database and return id
+                    
+                var createAdvertModel = mapper.Map<CreateAdvertModel>(model);
+
+                var apiCallResponse = await advertApiClient.Create(createAdvertModel);
+
+                var id = apiCallResponse.Id;
 
                 var fileName = "";
                 if(imageFile != null)
@@ -47,10 +63,35 @@ namespace WebAdvert.Web.Controllers
                             if (!result)
                                 throw new System.Exception(message: "Could not load the image into the repository, Please see the logs");
                         }
+
+
+                        var confirmModel = new ConfirmAdvertRequest
+                        {
+                            Id = id,
+                            Status = AdvertApi.models.AdvertStatus.Active
+
+                        };
+
+                        var canConfirm = await advertApiClient.Confirm(confirmModel);
+
+                        if (!canConfirm)
+                        {
+                            throw new Exception(message: $"Cannot confirm advert of id = {id}");
+                        }
+
                         return RedirectToAction("Index",controllerName: "Home");
                     }
                     catch (Exception ex)
                     {
+                        var confirmModel = new ConfirmAdvertRequest
+                        {
+                            Id = id,
+                            Status = AdvertApi.models.AdvertStatus.Pending
+
+                        };
+
+                        await advertApiClient.Confirm(confirmModel);
+
                         Console.WriteLine(ex);
                     }
                 }
