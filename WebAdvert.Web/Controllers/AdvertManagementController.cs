@@ -45,6 +45,8 @@ namespace WebAdvert.Web.Controllers
                     
                 var createAdvertModel = mapper.Map<CreateAdvertModel>(model);
 
+                createAdvertModel.FilePath = imageFile.FileName;
+
                 var apiCallResponse = await advertApiClient.Create(createAdvertModel);
 
                 var id = apiCallResponse.Id;

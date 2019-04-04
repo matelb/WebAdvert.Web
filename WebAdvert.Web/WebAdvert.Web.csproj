@@ -7,7 +7,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="AdvertApi.Models.Matelb" Version="1.0.0" />
+    <PackageReference Include="AdvertApi.Models.Matelb" Version="1.0.2" />
     <PackageReference Include="Amazon.AspNetCore.Identity.Cognito" Version="0.9.0.11" />
     <PackageReference Include="Amazon.Extensions.CognitoAuthentication" Version="1.0.0" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="6.0.0" />
